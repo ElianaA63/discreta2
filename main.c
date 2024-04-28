@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include "API2024Parte2.h" 
 #include "APIG24.h"
@@ -65,8 +66,55 @@ u32 compararCorridas(u32* num_colors, u32 num_initial_orders) {
     return min_colors_index;
 }
 
+// Función auxiliar que decide si un grafo está coloreado adecuadamente
+// Nota: Por el Lema del Apretón de manos, esta función es O(m)
+bool esPropio (Grafo G) {
+    for (u32 i = 0; i < NumeroDeVertices(G); ++i)
+    {
+        for (u32 j = 0; i < Grado(i, G); ++j)
+        {
+            if (Color(i, G) == Color(Vecino(j, i, G), G))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 int main() {
+
+/* Main trucho: */
+
+    Grafo G = ConstruirGrafo();
+
+    u32 orden_natural[NumeroDeVertices(G)];
+
+    for (u32 i = 0; i < NumeroDeVertices(G); ++i)
+    {
+        orden_natural[i] = i;
+    }
+
+    orden_natural[0] = 1;
+    orden_natural[1] = 0;
+
+    printf("Greedy con orden natural: %u\n", Greedy(G, orden_natural));
+
+    if (esPropio(G))
+    {
+        printf("El coloreo es propio\n");
+    }
+    else
+    {
+        printf("El coloreo no es propio\n");
+    }
+
+    return 0;
+
+/* Main posta: */
+
+/*
+
     // Semilla para generar números aleatorios
     srand(time(NULL));
 
@@ -135,4 +183,7 @@ int main() {
     DestruirGrafo(G);
 
     return 0;
+
+*/
+
 }
