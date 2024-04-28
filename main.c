@@ -71,7 +71,7 @@ u32 compararCorridas(u32* num_colors, u32 num_initial_orders) {
 bool esPropio (Grafo G) {
     for (u32 i = 0; i < NumeroDeVertices(G); ++i)
     {
-        for (u32 j = 0; i < Grado(i, G); ++j)
+        for (u32 j = 0; j < Grado(i, G); ++j)
         {
             if (Color(i, G) == Color(Vecino(j, i, G), G))
             {
@@ -80,6 +80,15 @@ bool esPropio (Grafo G) {
         }
     }
     return true;
+}
+
+// Función auxiliar que imprime un arreglo
+void arrayDump(u32* arr, u32 n) {
+    printf("[");
+    for (u32 i = 0; i < n-1; ++i) {
+        printf("%u, ", arr[i]);
+    }
+    printf("%u]\n", arr[n-1]);
 }
 
 int main() {
@@ -95,9 +104,6 @@ int main() {
         orden_natural[i] = i;
     }
 
-    orden_natural[0] = 1;
-    orden_natural[1] = 0;
-
     printf("Greedy con orden natural: %u\n", Greedy(G, orden_natural));
 
     if (esPropio(G))
@@ -108,6 +114,11 @@ int main() {
     {
         printf("El coloreo no es propio\n");
     }
+
+    printf("Colores de G: ");
+    u32 Colores[NumeroDeVertices(G)];
+    ExtraerColores(G, Colores);
+    arrayDump(Colores, NumeroDeVertices(G));
 
     return 0;
 

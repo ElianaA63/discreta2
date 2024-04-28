@@ -5,8 +5,8 @@
 
 
 /**
-* @brief Greedy colorea los vértices de un grafo G siguiendo un orden dado en Orden.
-* @return El número de colores utilizados para colorear los vértices del grafo G según el algoritmo Greedy, o 232 − 1 en caso de error
+* @brief Greedy colorea los vértices de un grafo G siguiendo un orden dado en el arreglo Orden.
+* @return El número de colores utilizados para colorear los vértices del grafo G según el algoritmo Greedy, o 2^32 − 1 en caso de error
 */
 u32 Greedy(Grafo G,u32* Orden);
 
