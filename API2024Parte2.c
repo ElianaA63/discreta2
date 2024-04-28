@@ -36,7 +36,7 @@ static color getColor (color* colores_vec, u32 n) {
     return colores_vec[i] + 1; // Tengo que usar un nuevo color
 }
 
-/* La idea es la siguiente: Pimeor corroboramos que Orden sea efectivamente una biyección. Esto nos cuesta O(N^2).
+/* La idea es la siguiente: Primero corroboramos que Orden sea efectivamente una biyección. Esto nos cuesta O(N^2).
 Después, para cada vértice, primero obtenemos el arreglo de sus vecinos que es O(Grado(v, G)),
 luego ordenamos el arrelgo utilizando el algoritmo quicksort, que es O(N * log(N)) en caso promedio), para poder
 recorrer de forma más eficiente los vértices. Finalmente, recorremos el arreglo de vecinos y obtenemos el color de
@@ -102,74 +102,27 @@ u32 Greedy(Grafo G, u32* Orden) {
     return Max_color;
 }
 
-void swap(u32* a, u32* b) {
-    u32 temp = *a;
-    *a = *b;
-    *b = temp;
-}
-
-u32 partition(u32* colores_ordenados, u32* M, u32* m, u32* indices, u32 low, u32 high) {
-    u32 pivot = colores_ordenados[high];
-    u32 i = low - 1;
-
-    for (u32 j = low; j < high; j++) {
-        if ((colores_ordenados[j] % 4 == 0 && pivot % 4 == 0) ||
-            (colores_ordenados[j] % 2 == 0 && colores_ordenados[j] % 4 != 0 && pivot % 2 == 0 && pivot % 4 != 0) ||
-            (colores_ordenados[j] % 2 != 0 && pivot % 2 != 0)) {
-            if (M[colores_ordenados[j]] > M[pivot]) {
-                i++;
-                swap(&indices[i], &indices[j]);
-                swap(&colores_ordenados[i], &colores_ordenados[j]);
-            } else if (M[colores_ordenados[j]] == M[pivot] && m[colores_ordenados[j]] > m[pivot]) {
-                i++;
-                swap(&indices[i], &indices[j]);
-                swap(&colores_ordenados[i], &colores_ordenados[j]);
-            }
-        }
-    }
-
-    swap(&indices[i + 1], &indices[high]);
-    swap(&colores_ordenados[i + 1], &colores_ordenados[high]);
-
-    return i + 1;
-}
-
-void quickSort(u32* colores_ordenados, u32* M, u32* m, u32* indices, u32 low, u32 high) {
-    if (low < high) {
-        u32 pi = partition(colores_ordenados, M, m, indices, low, high);
-
-        if (pi > 0) {
-            quickSort(colores_ordenados, M, m, indices, low, pi - 1);
-        }
-
-        quickSort(colores_ordenados, M, m, indices, pi + 1, high);
-    }
-}
-
 char GulDukat(Grafo G, u32* Orden) {
     u32 num_vertices = NumeroDeVertices(G);
     u32 num_colores = NumeroDeLados(G); // Suponiendo que los colores van desde 1 hasta el número de lados
-    u32* vertices_por_color = calloc(num_colores, sizeof(u32));
-    if (vertices_por_color == NULL) {
-        fprintf(stderr, "No se pudo asignar memoria");
-        return 1; // Error: Fallo al asignar memoria temporal
-    }
-
-    // Contar la cantidad de vértices de cada color
-    for (u32 i = 0; i < num_vertices; i++) {
-        color c = Color(i, G);
-        vertices_por_color[c]++;
-    }
 
     // Definir las funciones m(x) y M(x)
     u32* m = malloc(num_colores * sizeof(u32));
     u32* M = malloc(num_colores * sizeof(u32));
+    if (m == NULL || M == NULL) {
+        fprintf(stderr, "No se pudo asignar memoria");
+        free(m);
+        free(M);
+        return 1; // Error: Fallo al asignar memoria temporal
+    }
 
+    // Inicializar las funciones m(x) y M(x)
     for (u32 x = 0; x < num_colores; x++) {
         m[x] = Delta(G); // Inicializar con un valor grande
         M[x] = 0; // Inicializar con un valor pequeño
     }
 
+    // Calcular las funciones m(x) y M(x)
     for (u32 i = 0; i < num_vertices; i++) {
         color c = Color(i, G);
         u32 grado = Grado(i, G);
@@ -181,11 +134,10 @@ char GulDukat(Grafo G, u32* Orden) {
         }
     }
 
-    // Ordenar los colores según la especificación
+    // Ordenar los colores según el criterio especificado
     u32* colores_ordenados = malloc(num_colores * sizeof(u32));
     if (colores_ordenados == NULL) {
         fprintf(stderr, "No se pudo asignar memoria");
-        free(vertices_por_color);
         free(m);
         free(M);
         return 1; // Error: Fallo al asignar memoria temporal
@@ -196,22 +148,48 @@ char GulDukat(Grafo G, u32* Orden) {
         colores_ordenados[i] = i;
     }
 
-    // Ordenar los colores usando QuickSort
-    quickSort(colores_ordenados, M, m, colores_ordenados, 0, num_colores - 1);
+    // Ordenar los colores según el criterio especificado
+    qsort(colores_ordenados, num_colores, sizeof(u32), menorQue_Colores);
 
     // Llenar el arreglo Orden con los vértices ordenados según los colores
     u32 indice = 0;
 
+    // Primero, ponemos los vértices de colores divisibles por 4, ordenados según M(x)
     for (u32 i = 0; i < num_colores; i++) {
         color c = colores_ordenados[i];
-        for (u32 j = 0; j < num_vertices; j++) {
-            if (Color(j, G) == c) {
-                Orden[indice++] = j;
+        if (c % 4 == 0) {
+            for (u32 j = 0; j < num_vertices; j++) {
+                if (Color(j, G) == c) {
+                    Orden[indice++] = j;
+                }
             }
         }
     }
 
-    free(vertices_por_color);
+    // Luego, ponemos los vértices de colores pares no divisibles por 4, ordenados según M(x) + m(x)
+    for (u32 i = 0; i < num_colores; i++) {
+        color c = colores_ordenados[i];
+        if (c % 2 == 0 && c % 4 != 0) {
+            for (u32 j = 0; j < num_vertices; j++) {
+                if (Color(j, G) == c) {
+                    Orden[indice++] = j;
+                }
+            }
+        }
+    }
+
+    // Finalmente, ponemos los vértices de colores impares, ordenados según m(x)
+    for (u32 i = 0; i < num_colores; i++) {
+        color c = colores_ordenados[i];
+        if (c % 2 != 0) {
+            for (u32 j = 0; j < num_vertices; j++) {
+                if (Color(j, G) == c) {
+                    Orden[indice++] = j;
+                }
+            }
+        }
+    }
+
     free(m);
     free(M);
     free(colores_ordenados);
@@ -223,61 +201,64 @@ void contarVerticesPorColor(u32* vertices_por_color, Grafo G) {
     u32 num_vertices = NumeroDeVertices(G);
     for (u32 i = 0; i < num_vertices; i++) {
         color c = Color(i, G);
-        if (c != 1 && c != 2) {
-            vertices_por_color[c - 3]++;
-        // Los colores se ajustan restando 3 para que comiencen desde 0
+        if (c > 2) { // Solo contar vértices de colores distintos de 1 y 2
+            vertices_por_color[c - 3]++; // Ajustar el índice para excluir los colores 1 y 2
         }
+    }
+}
+
+// Función para comparar colores en el ordenamiento
+static int comparar_colores(const void *c1, const void *c2) {
+    const u32* color1 = (const u32 *)c1;
+    const u32* color2 = (const u32 *)c2;
+
+    // Obtener el número de vértices por color
+    u32 num_vertices_color1 = *color1;
+    u32 num_vertices_color2 = *color2;
+
+    if (num_vertices_color1 < num_vertices_color2) {
+        return -1;
+    } else if (num_vertices_color1 > num_vertices_color2) {
+        return 1;
+    } else {
+        // Si tienen la misma cantidad de vértices, desempatar utilizando el número de color
+        return (*(color1 + 1)) - (*(color2 + 1));
     }
 }
 
 // Función para ordenar los vértices según los criterios especificados
 char ElimGarak(Grafo G, u32* Orden) {
     u32 num_vertices = NumeroDeVertices(G);
-    u32 num_colores = NumeroDeLados(G); // Suponiendo que los colores van desde 1 hasta el número de lados
-    u32* vertices_por_color = calloc(num_colores - 2, sizeof(u32)); // Excluyendo los colores 1 y 2
-    if (vertices_por_color == NULL) {
-        fprintf(stderr, "No se pudo asignar memoria");
-        return 1; // Error: Fallo al asignar memoria temporal
-    }
+    u32 num_colores = NumeroDeLados(G); 
 
     // Contar la cantidad de vértices de cada color, excluyendo los colores 1 y 2
+    u32* vertices_por_color = calloc(num_colores - 2, sizeof(u32));
+    if (vertices_por_color == NULL) {
+        fprintf(stderr, "No se pudo asignar memoria para vertices_por_color\n");
+        return 1; // Error: Fallo al asignar memoria temporal
+    }
     contarVerticesPorColor(vertices_por_color, G);
 
-    // Ordenar los colores según la cantidad de vértices, de menor a mayor
+    // Crear un arreglo de colores ordenados según la cantidad de vértices
     u32* colores_ordenados = malloc((num_colores - 2) * sizeof(u32));
     if (colores_ordenados == NULL) {
-        fprintf(stderr, "No se pudo asignar memoria");
+        fprintf(stderr, "No se pudo asignar memoria para colores_ordenados\n");
         free(vertices_por_color);
         return 1; // Error: Fallo al asignar memoria temporal
     }
-
-    // Inicializar los colores ordenados
-    for (u32 i = 0; i < num_colores - 2; i++) {
-        colores_ordenados[i] = i + 3; // Ajustar los colores para que comiencen desde 3
+    for (u32 i = 0; i < num_colores - 2; i++) { // Comenzar desde el tercer color (excluyendo 1 y 2)
+        colores_ordenados[i] = i + 3;
     }
-
     // Ordenar los colores según la cantidad de vértices
-    for (u32 i = 0; i < num_colores - 2; i++) {
-        for (u32 j = i + 1; j < num_colores - 2; j++) {
-            if (vertices_por_color[colores_ordenados[i] - 3] > vertices_por_color[colores_ordenados[j] - 3]) {
-                // Swap
-                u32 temp = colores_ordenados[i];
-                colores_ordenados[i] = colores_ordenados[j];
-                colores_ordenados[j] = temp;
-            }
-        }
-    }
+    qsort(colores_ordenados, num_colores - 2, sizeof(u32), comparar_colores);
 
     // Llenar el arreglo Orden con los vértices ordenados según los colores
     u32 indice = 0;
-
-    // Colocar los vértices del color con menos vértices primero
-    for (u32 i = 0; i < num_colores - 2; i++) {
+    for (u32 i = 0; i < num_colores - 2; i++) { // Comenzar desde el tercer color (excluyendo 1 y 2)
         color c = colores_ordenados[i];
         for (u32 j = 0; j < num_vertices; j++) {
             if (Color(j, G) == c) {
-                Orden[indice] = j;
-                indice++;
+                Orden[indice++] = j;
             }
         }
     }
@@ -285,19 +266,18 @@ char ElimGarak(Grafo G, u32* Orden) {
     // Colocar los vértices del color 2
     for (u32 i = 0; i < num_vertices; i++) {
         if (Color(i, G) == 2) {
-            Orden[indice] = i;
-            indice++;
+            Orden[indice++] = i;
         }
     }
 
     // Colocar los vértices del color 1
     for (u32 i = 0; i < num_vertices; i++) {
         if (Color(i, G) == 1) {
-            Orden[indice] = i;
-            indice++;
+            Orden[indice++] = i;
         }
     }
 
+    // Liberar memoria
     free(vertices_por_color);
     free(colores_ordenados);
     return 0;
