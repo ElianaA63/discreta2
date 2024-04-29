@@ -84,6 +84,8 @@ void arrayDump(u32* arr, u32 n) {
     printf("%u]\n", arr[n-1]);
 }
 
+/*
+
 int main() {
     srand(time(NULL)); // Inicializar la semilla para generar números aleatorios
 
@@ -168,11 +170,12 @@ int main() {
     return 0;
 }
 
+*/
 
+/* Main trucho:*/ 
 
-/* Main trucho: 
-
-
+int main() {
+    
     Grafo G = ConstruirGrafo();
     if (G == NULL) {
         fprintf(stderr, "ERROR: Fallo al leer el grafo.\n");
@@ -189,23 +192,10 @@ int main() {
 
     printf("Greedy con orden natural: %u\n", Greedy(G, orden_natural));
 
-    if (esPropio(G))
-    {
-        printf("El coloreo es propio\n");
-    }
-    else
-    {
-        printf("El coloreo no es propio\n");
-    }
-
-    printf("Colores de G: ");
-    u32 *Colores = malloc(NumeroDeVertices(G) * sizeof(u32));
-    ExtraerColores(G, Colores);
-    arrayDump(Colores, NumeroDeVertices(G));
-
     free(orden_natural);
-    free(Colores);
     DestruirGrafo(G);
 
-*/
+    return 0;
+}
+
 

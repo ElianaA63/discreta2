@@ -7,8 +7,27 @@
 
 #define MAX_U32 4294967295 //(2^32)-1
 
+// Función auxiliar para verificar si un arreglo es biyectivo. Costo: O(N)
+bool verificarBiyectividad(u32* Orden, u32 n) {
+    bool *vistos = calloc(n, sizeof(bool));
+    if (!vistos) {
+        return false; // Error: No se pudo asignar memoria
+    }
+
+    for (u32 i = 0; i < n; ++i) {
+        if (Orden[i] >= n || vistos[Orden[i]]) {
+            free(vistos);
+            return false; // Orden no es biyectiva
+        }
+        vistos[Orden[i]] = true;
+    }
+
+    free(vistos);
+    return true;
+}
+
 // Función para combinar dos subarreglos ordenados arr[l..m] y arr[m+1..r]
-void merge(u32 arr[], u32 l, u32 m, u32 r) {
+static void merge(u32 arr[], u32 l, u32 m, u32 r) {
     u32 n1 = m - l + 1;
     u32 n2 = r - m;
 
@@ -54,7 +73,7 @@ void merge(u32 arr[], u32 l, u32 m, u32 r) {
 }
 
 // Función que implementa Merge Sort
-void mergeSort(u32 arr[], u32 l, u32 r) {
+static void mergeSort(u32 arr[], u32 l, u32 r) {
     if (l < r) {
         // Encuentra el punto medio
         u32 m = l + (r - l) / 2;
@@ -68,43 +87,26 @@ void mergeSort(u32 arr[], u32 l, u32 r) {
     }
 }
 
-/* La idea es la siguiente: Primero corroboramos que Orden sea efectivamente una biyección. Esto nos cuesta O(N) para hacer
-la copia y verificar sobreyectividad, O(N * log(N)) para ordenar la copia con el algoritmo Merge Sort y O(N) para verificar
-inyectividad. TOTAL: O(N * log(N)).
-Antes de entrar al bucle principal del algoritmo, las dos llamadas a calloc nos cuestan O(Grado(G)) + O(N) respectivamente.
+/* La idea es la siguiente: Primero corroboramos que Orden sea efectivamente una biyección, esto nos cuesta O(N). Antes 
+de entrar al bucle principal del algoritmo, las dos llamadas a calloc nos cuestan O(Grado(G)) + O(N) respectivamente.
 Una vez dentro del bucle, para cada vértice primero obtenemos el arreglo con los colores usados por sus vecinos que es 
-O(Grado(v, G)), luego decimos el color que va a tener v que es O(Grado(v, G)) y reseteamos a 0 el arreglo de colores usados
+O(Grado(v, G)), luego decidimos el color que va a tener v que es O(Grado(v, G)) y reseteamos a 0 el arreglo de colores usados
 para el siguiente vértice lo cual también nos cuesta O(Grado(v, G)). TOTAL: O(M) por el lema del apretón de manos.
-Por lo tanto la complejidad computacional de Greedy está dada por: O(N * log(N)) +  O(M) = O(M) pues M = N^2 para grafos 
-densos, lo cual supera a N * log(N)*/
+Por lo tanto la complejidad computacional de Greedy está dada por: O(N) +  O(M) = O(M) */
 
 u32 Greedy(Grafo G, u32* Orden) {
     u32 num_vert = NumeroDeVertices(G);
 
     // Verificar que Orden provea un orden válido de los elementos {0, 1, ..., n − 1}
-    u32 *Orden_copy = malloc(num_vert * sizeof(u32)); // Arreglo auxiliar
-    // Realizamos la copia mientras chequeamos sobreyectividad
-    for (u32 i = 0; i < num_vert; ++i) {
-        if (Orden[i] >= num_vert) {
-            return MAX_U32; // Error: Orden no es sobreyectiva
-        }
-        Orden_copy[i] = Orden[i];
+    if (!verificarBiyectividad(Orden, num_vert)) {
+        return MAX_U32; // Error: Orden no es biyectiva
     }
-    // Ordenamos la copia para que sea más fácil encontrar repetidos
-    mergeSort(Orden_copy, 0, num_vert - 1);
-    // Chequea inyectividad
-    for (u32 j = 0; j < num_vert - 1; ++j) {
-        if (Orden_copy[j] == Orden_copy[j+1]) {
-            return MAX_U32; // Error: Orden no es inyectiva
-        }
-    }
-    free(Orden_copy);   
 
     // Colorear los vértices siguiendo el orden dado en el arreglo Orden
     u32 v; // Indice del vértice a colorear
     u32 num_vec; // Cantidad de vecinos de v
     color Max_color = 0; // Color máximo utilizado
-    color *colores_usados = calloc(Delta(G), sizeof(color)); // Arreglo con los colores usados de los vecinos de v
+    bool *colores_usados = calloc(Delta(G), sizeof(bool)); // Arreglo con los colores usados de los vecinos de v
     if (!colores_usados) {
         return MAX_U32; // No se pudo asignar memoria
     }
@@ -123,35 +125,20 @@ u32 Greedy(Grafo G, u32* Orden) {
             if (Colores[w] == 0) { 
                 continue; // Si el color del vecino w es 0, no lo contamos
             }
-            colores_usados[Colores[w] - 1] = Colores[w];
+            colores_usados[Colores[w] - 1] = true;
         }
 
-        // Obtenemos el color de v (Asumimos que se empieza a colorear desde 1)
+        // Obtenemos el color de v y actualizamos el color máximo
         u32 k = 0;
-        while (k < num_vec - 1) {
-            if (colores_usados[k] + 1 == colores_usados[k+1] || colores_usados[k] == colores_usados[k+1]) {
-                ++k;
-            }
-            // Hay un "hueco" entre los colores y puedo tomar el mínimo color que el "hueco" me permita
-            else {
-                Colores[v] = colores_usados[k] + 1;
-                break;
-            }
+        while (colores_usados[k]) {
+            ++k;
         }
-        // Caso en el que solamente hay un vecino
-        if (k == 0 && Colores[v] == 0) {
-            Colores[v] = (colores_usados[0] == 1) ? 2 : 1;
-        }
-        // Todos los vecinos tienen un color diferente, por lo que tengo que usar un nuevo color
-        if (k == num_vec - 1)
-        {
-            Colores[v] = colores_usados[k] + 1;
-        }
+        Colores[v] = k + 1;
         Max_color = (Colores[v] > Max_color) ? Colores[v] : Max_color; // Actualizo el color máximo
 
-        // Volvemos a 0
+        // Volvemos a false
         for (u32 l = 0; l < num_vec; ++l) {
-            colores_usados[l] = 0;
+            colores_usados[l] = false;
         }
     }
     ImportarColores(Colores, G);
@@ -159,6 +146,7 @@ u32 Greedy(Grafo G, u32* Orden) {
     free(Colores);
     return Max_color;
 }
+
 
 char GulDukat(Grafo G, u32* Orden) {
     u32 num_vertices = NumeroDeVertices(G);
