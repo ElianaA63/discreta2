@@ -159,7 +159,7 @@ char GulDukat(Grafo G, u32* Orden) {
         fprintf(stderr, "No se pudo asignar memoria");
         free(m);
         free(M);
-        return 1; // Error: Fallo al asignar memoria temporal
+        return '1'; // Error: Fallo al asignar memoria temporal
     }
 
     // Inicializar las funciones m(x) y M(x)
@@ -186,7 +186,7 @@ char GulDukat(Grafo G, u32* Orden) {
         fprintf(stderr, "No se pudo asignar memoria");
         free(m);
         free(M);
-        return 1; // Error: Fallo al asignar memoria temporal
+        return '1'; // Error: Fallo al asignar memoria temporal
     }
 
     // Inicializar los colores ordenados
@@ -239,7 +239,7 @@ char GulDukat(Grafo G, u32* Orden) {
     free(m);
     free(M);
     free(colores_ordenados);
-    return 0;
+    return '0';
 }
 
 // Función para ordenar los vértices según los criterios especificados
@@ -251,7 +251,7 @@ char ElimGarak(Grafo G, u32* Orden) {
     u32* colores_ordenados = malloc(num_colores * sizeof(u32));
     if (colores_ordenados == NULL) {
         fprintf(stderr, "No se pudo asignar memoria para colores_ordenados\n");
-        return 1; // Error: Fallo al asignar memoria temporal
+        return '1'; // Error: Fallo al asignar memoria temporal
     }
 
     // Llenar el arreglo con los colores según los criterios especificados
@@ -278,5 +278,5 @@ char ElimGarak(Grafo G, u32* Orden) {
 
     // Liberar memoria
     free(colores_ordenados);
-    return 0;
+    return '0';
 }
