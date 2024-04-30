@@ -3,6 +3,19 @@
 
 #include "APIG24.h"
 
+struct ColorGroupSt {
+    u32 *Vertices; // Arreglo de vértices con el mismo color
+    u32 Longitud; // Cantidad de vértices con el mismo color
+    color Color;   // Color de los vértices
+};
+
+typedef struct ColorGroupSt *ColorGroup;
+
+// EXPLICAR
+void ColorGroupInit (ColorGroup CG, Grafo G, color c);
+
+// EXPLICAR
+void ColorGroupDestroy (ColorGroup CG);
 
 /**
 * @brief Greedy colorea los vértices de un grafo G siguiendo un orden dado en el arreglo Orden.

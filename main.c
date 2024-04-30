@@ -58,8 +58,9 @@ void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u
     u32 min_grado_actual = n - 1;
     u32 min_grado_anterior = 0; //Se incializa antinaturalmente para que funcione la primera iteración
     int indiceM = 0; // Indica donde colocar los vértices del máximo grado anterior
-    int indicen = n - 1; // Indica donde colocar los vértices del mínimo grado anterior
-    while (((indiceM - indicen) < 0) ? (-1) * (indiceM - indicen) : (indiceM - indicen) > 1) {
+    int indicem = n - 1; // Indica donde colocar los vértices del mínimo grado anterior
+    u32 agregados = 0; //Variable para la condición de parada
+    while (agregados < n) {
         for (u32 j = 0; j < n; ++j) {
             if (Grados[j] > Max_grado_actual && Grados[j] < Max_grado_anterior) {
                 Max_grado_actual = Grados[j];
@@ -67,13 +68,16 @@ void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u
             else if (Grados[j] == Max_grado_anterior) {
                 initial_orders[3][indiceM] = j;
                 ++indiceM;
+                ++agregados;
             }
+            
             if (Grados[j] < min_grado_actual && Grados[j] > min_grado_anterior) {
                 min_grado_actual = Grados[j];
             }
             else if (Grados[j] == min_grado_anterior && Grados[j] != Max_grado_anterior) {
-                initial_orders[3][indicen] = j;
-                --indicen;
+                initial_orders[3][indicem] = j;
+                --indicem;
+                ++agregados;
             }
         }
         Max_grado_anterior = Max_grado_actual;
@@ -136,6 +140,28 @@ int main (){
     }
     // Generar los ordenes iniciales
     generarOrdenesIniciales(G, initial_orders, num_vert);
+    //PRUEBA:
+    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i)
+    {
+        printf("\nOrden inicial %u:\n", i);
+        arrayDump(initial_orders[i], num_vert);
+
+        Greedy(G, initial_orders[i]);
+        printf("Coloreo de Greedy para el orden %u:\n", i);
+        color Colores[num_vert];	
+        ExtraerColores(G, Colores);
+        arrayDump(Colores, num_vert);
+
+        if (GulDukat(G, initial_orders[i]) == '1') {
+            fprintf(stderr, "ERROR: Fallo al ejecutar GulDukat.\n");
+            fprintf(stderr, "Cerrando el programa ...\n");
+            exit(1);
+        }
+        printf("Orden de GulDukat para el orden %u:\n", i);
+        arrayDump(initial_orders[i], num_vert);
+    }
+
+/*
 
     // Ejecutar Greedy en cada uno de los ordenes iniciales
     for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
@@ -209,5 +235,10 @@ int main (){
     }
     DestruirGrafo(G);
 
+    for (u32 i = 0; i < num_vert; ++i) {
+            ColorGroupDestroy(GrupoColores[i]);
+        }
+    free(GrupoColores);
+*/
     return 0;
 }
