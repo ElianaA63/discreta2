@@ -6,7 +6,6 @@
 #include "API2024Parte2.h"
 
 #define MAX_U32 4294967295 //(2^32)-1
-#define TOLERANCIA 30
 
 void ColorGroupInit (ColorGroup CG, Grafo G, color c) {
     // Asumimos que, para los grafos con los que se va a trabajar, 
@@ -46,7 +45,7 @@ static bool verificarBiyectividad(u32* Orden, u32 n) {
     return true;
 }
 
-void mergeCG(ColorGroup arr[], int l, int m, int r) {
+static void mergeCG(ColorGroup arr[], int l, int m, int r) {
     int n1 = m - l + 1;
     int n2 = r - m;
 
@@ -97,7 +96,7 @@ void mergeCG(ColorGroup arr[], int l, int m, int r) {
 }
 
 // Merge Sort para Grupo de Colores. Los ordena en orden asendente según la frecuencia del color
-void mergeSortCG(ColorGroup arr[], int l, int r) {
+static void mergeSortCG(ColorGroup arr[], int l, int r) {
     if (l < r) {
         // Encuentra el punto medio
         int m = l + (r - l) / 2;
@@ -111,7 +110,7 @@ void mergeSortCG(ColorGroup arr[], int l, int r) {
     }
 }
 
-void mergeColDesc(color arr[], int l, int m, int r, u32 Valores[]) {
+static void mergeColDesc(color arr[], int l, int m, int r, u32 Valores[]) {
     int i, j, k;
     int n1 = m - l + 1;
     int n2 = r - m;
@@ -154,7 +153,7 @@ void mergeColDesc(color arr[], int l, int m, int r, u32 Valores[]) {
 }
 
 // Merge Sort para colores. Ordena arr en orden descendente según Valores
-void mergeSortColDesc(color arr[], int l, int r, u32 Valores[]) {
+static void mergeSortColDesc(color arr[], int l, int r, u32 Valores[]) {
     if (l < r) {
         // Encuentra el punto medio del arreglo
         int m = l + (r - l) / 2;
@@ -193,7 +192,6 @@ u32 Greedy(Grafo G, u32* Orden) {
 
     // Verificar que Orden provea un orden válido de los elementos {0, 1, ..., n − 1}
     if (!verificarBiyectividad(Orden, num_vert)) {
-        printf("Error: Orden no es biyectiva papi\n");
         return MAX_U32; // Error: Orden no es biyectiva
     }
 

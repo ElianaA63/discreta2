@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O3 -std=c99 -g
+CFLAGS = -Wall -Wextra -Werror -O3 -std=c99 -g
 SOURCES = main.c APIG24.c API2024Parte2.c
 OBJECTS = $(SOURCES:.c=.o)
 INCLUDES = -I.

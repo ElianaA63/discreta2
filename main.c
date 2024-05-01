@@ -11,6 +11,7 @@
 #define NUM_FINAL_ORDERS_ITERATIONS 500
 #define DELIMITATION_BAR "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n"
 
+/*
 // Función auxiliar para imprimir un arreglo
 void arrayDump(u32 *arr, u32 n) {
     printf("[");
@@ -19,9 +20,10 @@ void arrayDump(u32 *arr, u32 n) {
     }
     printf("%u]\n", arr[n - 1]);
 }
+*/
 
 // Precondición: n >= 2
-void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u32 n) {
+static void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u32 n) {
 
     // Orden natural: 0, 1, ..., n-1
     for (u32 i = 0; i < n; ++i) {
@@ -170,10 +172,18 @@ int main (){
     for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
         printf("Numero de colores obtenidos con el orden inicial %u: %u\n", i, Greedy(G, initial_orders[i]));
         for (u32 j = 0; j < NUM_REORDER_ITERATIONS; ++j) {
-            GulDukat(G, initial_orders[i]);
+            if (GulDukat(G, initial_orders[i]) == '1') {
+                fprintf(stderr, "ERROR: Fallo GulDukat.\n");
+                fprintf(stderr, "Cerrando el programa ...\n");
+                exit(1);
+            }
             Greddy_result = Greedy(G, initial_orders[i]);
             printf("Iteracion %u GulDukat - Numero de colores obtenidos: %u\n", j + 1,  Greddy_result);
-            ElimGarak(G, initial_orders[i]);
+            if (ElimGarak(G, initial_orders[i]) == '1') {
+                fprintf(stderr, "ERROR: Fallo ElimGarak.\n");
+                fprintf(stderr, "Cerrando el programa ...\n");
+                exit(1);
+            }
             Greddy_result = Greedy(G, initial_orders[i]);
             printf("Iteracion %u ElimGarak - Numero de colores obtenidos: %u\n", j + 1,  Greddy_result);
         }
@@ -215,9 +225,17 @@ int main (){
     for (u32 i = 0; i < NUM_FINAL_ORDERS_ITERATIONS; ++i) {
         // Elegir al azar GulDukat o ElimGarak con una probabilidad de 50%
         if (rand() % 2 == 0) {
-            GulDukat(G, initial_orders[index]);
+            if (GulDukat(G, initial_orders[index]) == '1') {
+                fprintf(stderr, "ERROR: Fallo GulDukat.\n");
+                fprintf(stderr, "Cerrando el programa ...\n");
+                exit(1);
+            }
         } else {
-            ElimGarak(G, initial_orders[index]);
+            if (ElimGarak(G, initial_orders[index]) == '1') {
+                fprintf(stderr, "ERROR: Fallo ElimGarak.\n");
+                fprintf(stderr, "Cerrando el programa ...\n");
+                exit(1);
+            }
         }
         printf("Iteracion %u - Numero de colores obtenidos: %u\n", i + 1, Greedy(G, initial_orders[index]));
     }
