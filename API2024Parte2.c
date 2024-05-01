@@ -6,11 +6,12 @@
 #include "API2024Parte2.h"
 
 #define MAX_U32 4294967295 //(2^32)-1
+#define TOLERANCIA 30
 
 void ColorGroupInit (ColorGroup CG, Grafo G, color c) {
     // Asumimos que, para los grafos con los que se va a trabajar, 
-    // cada grupo de colores no tendra más de (4N)/10
-    CG->Vertices = malloc(((NumeroDeVertices(G) * 4) / 10) * sizeof(u32));
+    // cada grupo de colores no tendra más de (4N)/10 vértices más una cierta tolerancia 
+    CG->Vertices = malloc((((NumeroDeVertices(G) * 4) / 10) + TOLERANCIA) * sizeof(u32));
     if (!CG->Vertices) {
         fprintf(stderr, "ERROR: Fallo al asignar memoria.\n");
         fprintf(stderr, "Cerrando el programa ...\n");
