@@ -8,7 +8,14 @@
 #define MAX_U32 4294967295 //(2^32)-1
 
 void ColorGroupInit (ColorGroup CG, Grafo G, color c) {
-    CG->Vertices = malloc(NumeroDeVertices(G) * sizeof(u32)); // Cantidad máxima de vértices para un color (caso V(G) = {v})
+    // Asumimos que, para los grafos con los que se va a trabajar, 
+    // cada grupo de colores no tendra más de (4N)/10
+    CG->Vertices = malloc(((NumeroDeVertices(G) * 4) / 10) * sizeof(u32));
+    if (!CG->Vertices) {
+        fprintf(stderr, "ERROR: Fallo al asignar memoria.\n");
+        fprintf(stderr, "Cerrando el programa ...\n");
+        exit(1);
+    }
     CG->Longitud = 0;
     CG->Color = c;
 } 
@@ -16,6 +23,7 @@ void ColorGroupInit (ColorGroup CG, Grafo G, color c) {
 void ColorGroupDestroy (ColorGroup CG) {
     free(CG->Vertices);
     CG->Vertices = NULL;
+    free(CG);
 }
 
 // Función auxiliar para verificar si un arreglo es biyectivo. Costo: O(N)
@@ -184,6 +192,7 @@ u32 Greedy(Grafo G, u32* Orden) {
 
     // Verificar que Orden provea un orden válido de los elementos {0, 1, ..., n − 1}
     if (!verificarBiyectividad(Orden, num_vert)) {
+        printf("Error: Orden no es biyectiva papi\n");
         return MAX_U32; // Error: Orden no es biyectiva
     }
 
@@ -191,26 +200,27 @@ u32 Greedy(Grafo G, u32* Orden) {
     u32 v; // Indice del vértice a colorear
     u32 num_vec; // Cantidad de vecinos de v
     color Max_color = 0; // Color máximo utilizado
-    bool *colores_usados = calloc(Delta(G), sizeof(bool)); // Arreglo con los colores usados de los vecinos de v
-    if (!colores_usados) {
-        return MAX_U32; // No se pudo asignar memoria
-    }
+    bool *colores_usados = calloc(Delta(G) + 2, sizeof(bool)); // Arreglo con los colores usados de los vecinos de v
     color *Colores = calloc(num_vert, sizeof(color)); // Arreglo para guardar los colores del grafo
-    if (!Colores) {
-        free(colores_usados);
+    if (!colores_usados || !Colores) {
         return MAX_U32; // No se pudo asignar memoria
     }
+
     for (u32 i = 0; i < num_vert; ++i) {
         v = Orden[i];
         num_vec = Grado (v, G);
 
+        // Seteamos en false
+        for (u32 l = 0; l < num_vec + 2; ++l) {
+            colores_usados[l] = false;
+        }
+
         // Rellenamos colores_usados
         for (u32 j = 0; j < num_vec; ++j) {  
             u32 w = Vecino(j, v, G); // Variable para los vecinos de v
-            if (Colores[w] == 0) { 
-                continue; // Si el color del vecino w es 0, no lo contamos
+            if (Colores[w] != 0) { // Si el color del vecino w es 0, no lo contamos
+                colores_usados[Colores[w] - 1] = true;
             }
-            colores_usados[Colores[w] - 1] = true;
         }
 
         // Obtenemos el color de v y actualizamos el color máximo
@@ -220,11 +230,6 @@ u32 Greedy(Grafo G, u32* Orden) {
         }
         Colores[v] = k + 1;
         Max_color = (Colores[v] > Max_color) ? Colores[v] : Max_color; // Actualizo el color máximo
-
-        // Volvemos a false
-        for (u32 l = 0; l < num_vec; ++l) {
-            colores_usados[l] = false;
-        }
     }
     ImportarColores(Colores, G);
     free(colores_usados);
@@ -287,11 +292,11 @@ char GulDukat(Grafo G, u32* Orden) {
     mergeSortColDesc(Impares, 0, tamImpar - 1, m);
 
     // Inicializamos los grupos de colores
-    ColorGroup *GrupoColores = malloc(num_ver * sizeof(struct ColorGroupSt));
+    ColorGroup *GrupoColores = malloc(Max_color * sizeof(struct ColorGroupSt));
     if (!GrupoColores) {
         return '1'; // Error: No se pudo asignar memoria
     }
-    for (u32 i = 0; i < num_ver; ++i) {
+    for (u32 i = 0; i < Max_color; ++i) {
         GrupoColores[i] = malloc(sizeof(struct ColorGroupSt));
         if (!GrupoColores[i]) {
             return '1'; // Error: No se pudo asignar memoria
@@ -329,7 +334,7 @@ char GulDukat(Grafo G, u32* Orden) {
     }
 
     // Liberamos memoria y retornamos
-    for (u32 i = 0; i < num_ver; ++i) {
+    for (u32 i = 0; i < Max_color; ++i) {
         ColorGroupDestroy(GrupoColores[i]);
     }
     free(GrupoColores);
@@ -342,15 +347,18 @@ char GulDukat(Grafo G, u32* Orden) {
 // prácticos de este laboratorio.
 char ElimGarak(Grafo G, u32* Orden) {
     u32 num_ver = NumeroDeVertices(G);
-    color Colores[num_ver];
+    color *Colores = malloc(num_ver * sizeof(color));
+    if (!Colores) {
+        return '1'; // Error: No se pudo asignar memoria
+    }
     ExtraerColores(G, Colores);
-    ColorGroup *GrupoColores = malloc(num_ver * sizeof(struct ColorGroupSt));
+    u32 Max_color = getMaxColor(G);
+    ColorGroup *GrupoColores = malloc(Max_color * sizeof(struct ColorGroupSt));
     if (!GrupoColores) {
         return '1'; // Error: No se pudo asignar memoria
     }
     
     // Inicializamos los grupos de colores
-    u32 Max_color = getMaxColor(G);
     for (u32 i = 0; i < Max_color; ++i) {
         GrupoColores[i] = malloc(sizeof(struct ColorGroupSt));
         if (!GrupoColores[i]) {
@@ -364,10 +372,10 @@ char ElimGarak(Grafo G, u32* Orden) {
     u32 index1 = num_ver - 1; // Indice para los vértices de color 1
     u32 index2 = num_ver - 2; // Indice para los vértices de color 2
     for (u32 v = 0; v < num_ver; ++v) {
-       if (Colores[v] == 1) {
+        if (Colores[v] == 1) {
             // Acomodo el arreglo adecuadamente si hay un vértice de color 2 donde debería colocar el siguiente vértice de color 1
             // También chequeo que efectivamente halla puesto un vértice en esa posición y que no sea el primer vértice de color 1
-            if (Colores[Orden[index1]] == 2 && index2 != num_ver - 2 && index1 != num_ver - 1) {
+            if (Colores[Orden[index1]] == 2 && index1 != index2 && index1 != num_ver - 1) {
                 u32 temp = Orden[index1];
                 Orden[index1] = v;
                 Orden[index2] = temp;
@@ -376,20 +384,20 @@ char ElimGarak(Grafo G, u32* Orden) {
             else{
                 Orden[index1] = v;
             }
-            if (index1 == index2) { // Acomodo si me quedaron los índices iguales
-                --index2;
-            }
             --index1;
-       }
-       else if (Colores[v] == 2) {
+        }
+        else if (Colores[v] == 2) {
             Orden[index2] = v;
             --index2;
-       }
-       // En cualquier otro caso, actualizamos GrupoColores y el color máximo
-       else {
+        }
+        // En cualquier otro caso, actualizamos GrupoColores y el color máximo
+        else {
             GrupoColores[Colores[v] - 1]->Vertices[GrupoColores[Colores[v] - 1]->Longitud] = v;
             ++GrupoColores[Colores[v] - 1]->Longitud;
-       }
+        }
+        if (index1 == index2 - 1) { // Acomodo si index1 se adelantó
+            --index2;
+        }
     }
     
     // Ordenamos los Grupos según la frecuencia de color utilziando MergeSort empezando desde el color 3
@@ -415,6 +423,7 @@ char ElimGarak(Grafo G, u32* Orden) {
     }
 
     // Liberamos memoria y retornamos
+    free(Colores);
     for (u32 i = 0; i < Max_color; ++i) {
             ColorGroupDestroy(GrupoColores[i]);
         }
