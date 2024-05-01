@@ -49,7 +49,7 @@ void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u
 
     // Ordenar los vértices según su grado, de mayor a menor
     // Nota: si el grafo es regular, es equivalente al orden natual
-    u32 Grados[n];
+    u32 *Grados = malloc(n * sizeof(u32));
     for (u32 i = 0; i < n; ++i) {
         Grados[i] = Grado(i, G);
     }
@@ -85,7 +85,7 @@ void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u
         Max_grado_actual = 0;
         min_grado_actual = n - 1;
     }
-    
+    free(Grados);
    
     // Orden extra: primero divisible por 3 en orden creciente luego el resto en orden creciente.
     num = 0;
@@ -100,6 +100,7 @@ void generarOrdenesIniciales(Grafo G, u32* initial_orders[NUM_INITIAL_ORDERS], u
     }
 }
 
+/*
 // Función auxiliar para decidir si un grafo está coloreado adecuadamente
 // Nota: Por el Lema del Apretón de manos, esta función es O(m)
 bool esPropio(Grafo G) {
@@ -112,6 +113,7 @@ bool esPropio(Grafo G) {
     }
     return true;
 }
+*/
 
 int main (){
 
@@ -119,16 +121,18 @@ int main (){
     srand(time(NULL));
 
     // Crear el grafo
+    printf("Cargando grafo ...\n");
     Grafo G = ConstruirGrafo();
     if (G == NULL) {
         fprintf(stderr, "ERROR: Fallo al leer el grafo.\n");
         fprintf(stderr, "Cerrando el programa ...\n");
         exit(1);
     }
+    printf("Grafo listo.\n");
     u32 num_vert = NumeroDeVertices(G);
 
     // Array de ordenes iniciales
-    u32* initial_orders[NUM_INITIAL_ORDERS];
+    u32 *initial_orders[NUM_INITIAL_ORDERS];
 
     // Pedimos memoria para los ordenes iniciales
     for (u32 i = 0; i < NUM_INITIAL_ORDERS; i++) {
@@ -139,54 +143,12 @@ int main (){
         }
     }
     // Generar los ordenes iniciales
+    printf("Generando ordenes iniciales ...\n");
     generarOrdenesIniciales(G, initial_orders, num_vert);
-    //PRUEBA:
-    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i)
-    {
-        printf("\nOrden inicial %u:\n", i);
-        arrayDump(initial_orders[i], num_vert);
+    printf("Ordenes iniciales listos.\n");
 
-        Greedy(G, initial_orders[i]);
-        printf("Coloreo de Greedy para el orden %u:\n", i);
-        color Colores[num_vert];	
-        ExtraerColores(G, Colores);
-        arrayDump(Colores, num_vert);
-
-        if (ElimGarak(G, initial_orders[i]) == '1') {
-            fprintf(stderr, "ERROR: Fallo al ejecutar ElimGarak.\n");
-            fprintf(stderr, "Cerrando el programa ...\n");
-            exit(1);
-        }
-        printf("Orden de ElimGarak para el orden %u:\n", i);
-        arrayDump(initial_orders[i], num_vert);
-    }
-
-/*
-
-    // Ejecutar Greedy en cada uno de los ordenes iniciales
-    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
-        printf("Número de colores obtenidos con el orden inicial %u: %u\n", i, Greedy(G, initial_orders[i]));
-    }
-    
-    // Arreglo que guarda cuantos colores se usaron con Greedy en cada iteración para cada orden inicial
-    // En todo orden se cumple que el resultado de las primeras (NUM_REORDER_ITERATIONS_COLORS / 2) 
-    // iteraciones corresponden a haber ordenado con GulDukat y la otra mitad con ElimGarak
-    u32 num_colors_iterations[NUM_INITIAL_ORDERS][NUM_REORDER_ITERATIONS_COLORS];
-
-    // Ejecutar GulDukat y Greedy, y luego ElimGarak y Greedy en cada iteración
-    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
-        printf("\nResultado para el orden inicial %u:\n", i);
-        for (u32 j = 0; j < NUM_REORDER_ITERATIONS; ++j) {
-            GulDukat(G, initial_orders[i]);
-            num_colors_iterations[i][j] = Greedy(G, initial_orders[i]);
-            printf("Iteración %u - Número de colores obtenidos: %u\n", j + 1, num_colors_iterations[i][j]);
-            ElimGarak(G, initial_orders[i]);
-            num_colors_iterations[i][j + NUM_REORDER_ITERATIONS] = Greedy(G, initial_orders[i]);
-            printf("Iteración %u - Número de colores obtenidos: %u\n", j + 1, num_colors_iterations[i][j + NUM_REORDER_ITERATIONS]);
-        }
-        printf(DELIMITATION_BAR);
-    }
-
+    // Array para guardar los colores obtenidos en la última iteración
+    u32 results[NUM_INITIAL_ORDERS];
     // Array para el último coloreo de las iteraciones
     color *ultimosColoreos[NUM_INITIAL_ORDERS];
     for (size_t i = 0; i < NUM_INITIAL_ORDERS; ++i) {
@@ -196,24 +158,56 @@ int main (){
             fprintf(stderr, "Cerrando el programa ...\n");
             exit(1);
         }
-        ExtraerColores(G, ultimosColoreos[i]);
     }
+
+    // Ejecutar GulDukat y Greedy, y luego ElimGarak y Greedy en cada iteración
+    u32 Greddy_result;
+    color *Zero = calloc(num_vert, sizeof(color));// Arreglo de 0´s para reinciar los colores del grafo
+    if (!Zero) {
+        fprintf(stderr, "Error: Fallo al asignar memoria\n");
+        return 1;
+    }
+    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
+        printf("Numero de colores obtenidos con el orden inicial %u: %u\n", i, Greedy(G, initial_orders[i]));
+        for (u32 j = 0; j < NUM_REORDER_ITERATIONS; ++j) {
+            GulDukat(G, initial_orders[i]);
+            Greddy_result = Greedy(G, initial_orders[i]);
+            printf("Iteracion %u GulDukat - Numero de colores obtenidos: %u\n", j + 1,  Greddy_result);
+            ElimGarak(G, initial_orders[i]);
+            Greddy_result = Greedy(G, initial_orders[i]);
+            printf("Iteracion %u ElimGarak - Numero de colores obtenidos: %u\n", j + 1,  Greddy_result);
+        }
+        results[i] = Greddy_result;
+        ExtraerColores(G, ultimosColoreos[i]);
+        ImportarColores(Zero, G);
+        printf(DELIMITATION_BAR);
+    }
+
+    // Liberamos memoria que ya no uso
+    free(Zero);
 
     // Comparar las 5 corridas y tomar el orden inicial con la menor cantidad de colores
     // Si dos coloreos utilizan la misma cantidad de colores, se deja la primera en el sentido de los ordenes
-    u32 min_color = num_vert; // En el peor de los casos Greedy usa un color por vértice
+    u32 min_color = Delta(G) + 1; // En el peor de los casos Greedy usa Delta(G) + 1 colores
     u32 index = 0;
     for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
-        if (num_colors_iterations[i][NUM_REORDER_ITERATIONS_COLORS - 1] < min_color) {
-            min_color = num_colors_iterations[i][NUM_REORDER_ITERATIONS_COLORS - 1];
+        if (results[i] < min_color) {
+            min_color = results[i];
             index = i;
         }
     }
+
     // Importamos el coloreo de menor colores
     ImportarColores(ultimosColoreos[index], G);
-    // Liberamos memoria
+
+    // Liberamos memoria que ya no usamos
     for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
         free(ultimosColoreos[i]);
+    }
+
+    // Liberamos más memoria que ya no usamos
+    for (u32 i = 0; i != index && i < NUM_INITIAL_ORDERS; ++i) {
+        free(initial_orders[i]);
     }
 
     // Hacer 500 reordenamientos seguidos de Greedy
@@ -225,20 +219,13 @@ int main (){
         } else {
             ElimGarak(G, initial_orders[index]);
         }
-        printf("Iteración %u - Número de colores obtenidos: %u\n", i + 1, Greedy(G, initial_orders[index]));
+        printf("Iteracion %u - Numero de colores obtenidos: %u\n", i + 1, Greedy(G, initial_orders[index]));
     }
     printf(DELIMITATION_BAR);
 
     // Liberamos memoria y destruimos el grafo
-    for (u32 i = 0; i < NUM_INITIAL_ORDERS; ++i) {
-        free(initial_orders[i]);
-    }
+    free(initial_orders[index]);
     DestruirGrafo(G);
 
-    for (u32 i = 0; i < num_vert; ++i) {
-            ColorGroupDestroy(GrupoColores[i]);
-        }
-    free(GrupoColores);
-*/
     return 0;
 }
