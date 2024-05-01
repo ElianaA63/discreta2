@@ -102,7 +102,7 @@ void mergeSortCG(ColorGroup arr[], int l, int r) {
     }
 }
 
-void mergeDesc(u32 arr[], int l, int m, int r) {
+void mergeColDesc(color arr[], int l, int m, int r, u32 Valores[]) {
     int i, j, k;
     int n1 = m - l + 1;
     int n2 = r - m;
@@ -119,7 +119,7 @@ void mergeDesc(u32 arr[], int l, int m, int r) {
     // Mezclar los arreglos temporales de nuevo al arreglo original arr[]
     i = 0, j = 0, k = l;
     while (i < n1 && j < n2) {
-        if (L[i] >= R[j]) {
+        if (Valores[L[i] - 1] >= Valores[R[j] - 1]) {
             arr[k] = L[i];
             i++;
         } else {
@@ -144,21 +144,32 @@ void mergeDesc(u32 arr[], int l, int m, int r) {
     }
 }
 
-// Merge Sort para u32. Ordena en orden descendente
-void mergeSortDesc(u32 arr[], int l, int r) {
+// Merge Sort para colores. Ordena arr en orden descendente según Valores
+void mergeSortColDesc(color arr[], int l, int r, u32 Valores[]) {
     if (l < r) {
         // Encuentra el punto medio del arreglo
         int m = l + (r - l) / 2;
 
         // Ordena la primera mitad
-        mergeSortDesc(arr, l, m);
+        mergeSortColDesc(arr, l, m, Valores);
 
         // Ordena la segunda mitad
-        mergeSortDesc(arr, m + 1, r);
+        mergeSortColDesc(arr, m + 1, r, Valores);
 
         // Mezcla las dos mitades ordenadas
-        mergeDesc(arr, l, m, r);
+        mergeColDesc(arr, l, m, r, Valores);
     }
+}
+
+// Función auxiliar para obtener el mayor color de un grafo. Cuesta O(N)
+static color getMaxColor(Grafo G) {
+    u32 num_ver = NumeroDeVertices(G);
+    color Max_color = 0;
+    for (u32 i = 0; i < num_ver; ++i) {
+        color c = Color(i, G);
+        Max_color = (c > Max_color) ? c : Max_color;
+    }
+    return Max_color;
 }
 
 /* La idea es la siguiente: Primero corroboramos que Orden sea efectivamente una biyección, esto nos cuesta O(N). Antes 
@@ -221,33 +232,27 @@ u32 Greedy(Grafo G, u32* Orden) {
     return Max_color;
 }
 
+// Función para ordenar los vértices según los criterios especificados
+// Como la complejidad de la función mergeSort en este caso es  menor a O(#cantidad_colores log #cantidad_colores) lo
+// cual es más chico que O(N), el algoritmo tiene complejidad O(N) para los fines prácticos de este laboratorio.
 char GulDukat(Grafo G, u32* Orden) {
     u32 num_ver = NumeroDeVertices(G);
-    u32 num_colores = Delta(G);
 
-    // Definir las funciones m(x) y M(x)
-    u32* m = malloc(num_colores * sizeof(u32));
-    u32* M = malloc(num_colores * sizeof(u32));
-    if (m == NULL || M == NULL) {
-        fprintf(stderr, "No se pudo asignar memoria");
-        free(m);
-        free(M);
-        return '1'; // Error: Fallo al asignar memoria temporal
-    }
-
-    // Inicializar las funciones m(x) y M(x)
-    for (u32 x = 0; x < num_colores; ++x) {
-        m[x] = num_colores; // Inicializar con un valor grande
+    // Definir, inicializar y calcular las funciones m(x) y M(x)
+    // También creamos un arreglo para guardar la suma de M(x) + m(x)
+    // Finalmente, ordenamos los arreglos en orden descendente
+    u32 Max_color = getMaxColor(G);
+    u32 m[Max_color];
+    u32 M[Max_color];
+    u32 D = Delta(G);
+    for (u32 x = 0; x < Max_color; ++x) {
+        m[x] = D; // Inicializar con un valor grande
         M[x] = 0; // Inicializar con un valor pequeño
     }
-
-    // Calcular las funciones m(x) y M(x) y de paso el color Máximo usado
     color c;
     u32 grado;
-    u32 Max_color = 0;
     for (u32 i = 0; i < num_ver; ++i) {
-        c = Color(i, G);
-        Max_color = (c > Max_color) ? c : Max_color;
+        c = Color(i, G) - 1;
         grado = Grado(i, G);
         if (grado < m[c]) {
             m[c] = grado;
@@ -256,6 +261,30 @@ char GulDukat(Grafo G, u32* Orden) {
             M[c] = grado;
         }
     }
+
+    //Generamos arreglos para ordenar los colores con Merge Sort en base a las condiciones pedidas
+    u32 tamDiv4 = Max_color/4;
+    color Divisibles4[tamDiv4];
+    for (color i = 1; i <= tamDiv4; ++i) {
+        Divisibles4[i - 1] = i * 4;
+    }
+    mergeSortColDesc(Divisibles4, 0, tamDiv4 - 1, M);
+    u32 tamPar = (Max_color % 4 <= 1) ? tamDiv4 : tamDiv4 + 1; 
+    color Pares[tamPar];
+    u32 Mmasm[Max_color]; // Arreglo para guardar M(x) + m(x)
+    for (u32 i = 0; i < Max_color; ++i) {
+        Mmasm[i] = M[i] + m[i];
+    }
+    for (color i = 0; i < tamPar; ++i) {
+        Pares[i] = i * 4 + 2;
+    }
+    mergeSortColDesc(Pares, 0, tamPar - 1, Mmasm);
+    u32 tamImpar = (Max_color % 2 == 0) ? Max_color/2 : Max_color/2 + 1;
+    color Impares[tamImpar];
+    for (color i = 1; i <= tamImpar; ++i) {
+        Impares[i - 1] = 2 * i - 1;
+    }
+    mergeSortColDesc(Impares, 0, tamImpar - 1, m);
 
     // Inicializamos los grupos de colores
     ColorGroup *GrupoColores = malloc(num_ver * sizeof(struct ColorGroupSt));
@@ -268,61 +297,38 @@ char GulDukat(Grafo G, u32* Orden) {
             return '1'; // Error: No se pudo asignar memoria
         }
         ColorGroupInit(GrupoColores[i], G, (i + 1));
-        c = Color(i, G);
+    }
+    for (u32 i = 0; i < num_ver; ++i) {
+        c = Color(i, G) - 1;
         GrupoColores[c]->Vertices[GrupoColores[c]->Longitud] = i;
         ++GrupoColores[c]->Longitud;
     }
 
-    // Creamos dos arrelgos nuevos para copiar los valores de M(x) y m(x) y otro para guardar su suma
-    // y ordenamos las copias en orden descendente
-    u32 MCopy[Max_color];
-    u32 mCopy[Max_color];
-    u32 MmasmCopy[Max_color];
-    for (color i = 0; i < Max_color; ++i){
-        MCopy[i] = M[i];
-        mCopy[i] = m[i];
-        MmasmCopy[i] = M[i] + m[i];
-    }  
-    mergeSortDesc(MCopy, 0, Max_color - 1);
-    mergeSortDesc(mCopy, 0, Max_color - 1);
-    mergeSortDesc(MmasmCopy, 0, Max_color - 1);
-
-    // La comlejidad computacional de todos los bulces siguientes es O(N) puesto que reviso cada vértice 1 vez
+    // La comlejidad computacional de todos los bucles siguientes es O(N) puesto que en cada uno reviso todos los vértices 1 vez
     // Agregamos los vértices que tengan colores que sean divisibles por 4, ordenados entre si de acuerdo con M(x)
     u32 vertices_agregados = 0;
-    for (color i = 0; i < Max_color && vertices_agregados < (num_ver % 4 == 0) ? num_ver/4 : num_ver/4 + 1; ++i) {
-        c = MCopy[i];
-        if (c % 4 == 0) {
-            for (u32 j = 0; j < GrupoColores[c]->Longitud; ++j) {
-                Orden[vertices_agregados] = GrupoColores[c]->Vertices[j];
-                ++vertices_agregados;
-            }    
-        }  
+    for (u32 i = 0; i < tamDiv4; ++i) {
+        for (u32 j = 0; j < GrupoColores[Divisibles4[i] - 1]->Longitud; ++j) {
+            Orden[vertices_agregados] = GrupoColores[Divisibles4[i] - 1]->Vertices[j];
+            ++vertices_agregados;    
+        }
     }
     // Agregamos los vértices que tengan colores que sean divisibles por 2 y no po 4, ordenados entre si de acuerdo con M(x) + m(x)
-    for (color i = 0; i < Max_color && vertices_agregados < (num_ver % 4 == 0) ? num_ver - num_ver/2 : num_ver - (num_ver/2 + 1); ++i) {
-        c = MmasmCopy[i];
-        if (i % 2 == 0 && i % 4 != 0) {
-            for (u32 j = 0; j < GrupoColores[c]->Longitud; ++j) {
-                Orden[vertices_agregados] = GrupoColores[c]->Vertices[j];
-                ++vertices_agregados;
-            }    
-        }  
+    for (u32 i = 0; i < tamPar; ++i) {
+        for (u32 j = 0; j < GrupoColores[Pares[i] - 1]->Longitud; ++j) {
+            Orden[vertices_agregados] = GrupoColores[Pares[i] - 1]->Vertices[j];
+            ++vertices_agregados;    
+        }
     }
     // Agregamos los vértices que tengan colores impares, ordenados entre si de acuerdo con m(x)
-    for (color i = 0; i < Max_color && vertices_agregados < num_ver; ++i) {
-        c = mCopy[i];
-        if (c % 2 == 1) {
-            for (u32 j = 0; j < GrupoColores[c]->Longitud; ++j) {
-                Orden[vertices_agregados] = GrupoColores[c]->Vertices[j];
-                ++vertices_agregados;
-            }    
-        }  
+    for (u32 i = 0; i < tamImpar; ++i) {
+        for (u32 j = 0; j < GrupoColores[Impares[i] - 1]->Longitud; ++j) {
+            Orden[vertices_agregados] = GrupoColores[Impares[i] - 1]->Vertices[j];
+            ++vertices_agregados;    
+        }
     }
 
     // Liberamos memoria y retornamos
-    free(m);
-    free(M);
     for (u32 i = 0; i < num_ver; ++i) {
         ColorGroupDestroy(GrupoColores[i]);
     }
@@ -331,8 +337,9 @@ char GulDukat(Grafo G, u32* Orden) {
 }
 
 // Función para ordenar los vértices según los criterios especificados
-// Notar que la complejidad del algoritmo está dada por la complejidad de la función mergeSort que en este caso es
-// O(#cantidad_colores log #cantidad_colores) lo cual se aproxima a O(N log N) para grafos densos.
+// Como la complejidad de la función mergeSort en este caso es  menor a O(#cantidad_colores log #cantidad_colores) lo
+// cual rápidamente es más chico que O(N) para grafos grandes, el algoritmo tiene complejidad O(N) para los fines 
+// prácticos de este laboratorio.
 char ElimGarak(Grafo G, u32* Orden) {
     u32 num_ver = NumeroDeVertices(G);
     color Colores[num_ver];
@@ -341,9 +348,10 @@ char ElimGarak(Grafo G, u32* Orden) {
     if (!GrupoColores) {
         return '1'; // Error: No se pudo asignar memoria
     }
-
+    
     // Inicializamos los grupos de colores
-    for (u32 i = 0; i < num_ver; ++i) {
+    u32 Max_color = getMaxColor(G);
+    for (u32 i = 0; i < Max_color; ++i) {
         GrupoColores[i] = malloc(sizeof(struct ColorGroupSt));
         if (!GrupoColores[i]) {
             return '1'; // Error: No se pudo asignar memoria
@@ -355,7 +363,6 @@ char ElimGarak(Grafo G, u32* Orden) {
     // Para el resto de vértices, los cargamos en sus respectivos grupos de colores
     u32 index1 = num_ver - 1; // Indice para los vértices de color 1
     u32 index2 = num_ver - 2; // Indice para los vértices de color 2
-    u32 Max_color = 0; // Color máximo utilizado
     for (u32 v = 0; v < num_ver; ++v) {
        if (Colores[v] == 1) {
             // Acomodo el arreglo adecuadamente si hay un vértice de color 2 donde debería colocar el siguiente vértice de color 1
@@ -382,7 +389,6 @@ char ElimGarak(Grafo G, u32* Orden) {
        else {
             GrupoColores[Colores[v] - 1]->Vertices[GrupoColores[Colores[v] - 1]->Longitud] = v;
             ++GrupoColores[Colores[v] - 1]->Longitud;
-            Max_color = (Colores[v] > Max_color) ? Colores[v] : Max_color;
        }
     }
     
@@ -392,7 +398,7 @@ char ElimGarak(Grafo G, u32* Orden) {
     }
     // Si no hay más colores termina acá
     else {
-        for (u32 i = 0; i < num_ver; ++i) {
+        for (u32 i = 0; i < Max_color; ++i) {
             ColorGroupDestroy(GrupoColores[i]);
         }
         free(GrupoColores);
@@ -409,7 +415,7 @@ char ElimGarak(Grafo G, u32* Orden) {
     }
 
     // Liberamos memoria y retornamos
-    for (u32 i = 0; i < num_ver; ++i) {
+    for (u32 i = 0; i < Max_color; ++i) {
             ColorGroupDestroy(GrupoColores[i]);
         }
     free(GrupoColores);

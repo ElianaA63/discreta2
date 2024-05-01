@@ -152,12 +152,12 @@ int main (){
         ExtraerColores(G, Colores);
         arrayDump(Colores, num_vert);
 
-        if (GulDukat(G, initial_orders[i]) == '1') {
-            fprintf(stderr, "ERROR: Fallo al ejecutar GulDukat.\n");
+        if (ElimGarak(G, initial_orders[i]) == '1') {
+            fprintf(stderr, "ERROR: Fallo al ejecutar ElimGarak.\n");
             fprintf(stderr, "Cerrando el programa ...\n");
             exit(1);
         }
-        printf("Orden de GulDukat para el orden %u:\n", i);
+        printf("Orden de ElimGarak para el orden %u:\n", i);
         arrayDump(initial_orders[i], num_vert);
     }
 
